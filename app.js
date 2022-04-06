@@ -1,3 +1,5 @@
+const fs = require("fs");
+
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
@@ -5,8 +7,11 @@ const path = require("path");
 const multer = require("multer");
 const { v4: uuidv4 } = require("uuid");
 const { graphqlHTTP } = require("express-graphql");
+const helmet = require("helmet");
+const compression = require("compression");
+const morgan = require("morgan");
 
-const config = require("./config");
+// const config = require("./config");
 const graphqlSchema = require("./graphql/schema");
 const graphqlResolver = require("./graphql/resolvers");
 const auth = require("./middleware/auth");
@@ -34,6 +39,15 @@ const fileFilter = (req, file, cb) => {
     cb(null, false);
   }
 };
+
+const accessLogStream = fs.createWriteStream(
+  path.join(__dirname, "access.log"),
+  { flags: "a" }
+);
+
+app.use(helmet());
+app.use(compression());
+app.use(morgan("combined", {stream: accessLogStream}));
 
 app.use(bodyParser.json());
 app.use(
@@ -100,8 +114,8 @@ app.use((error, req, res, next) => {
 });
 
 mongoose
-  .connect(config.MONGODB_URI)
+  .connect(process.env.MONGODB_URI)
   .then((result) => {
-    app.listen(8080);
+    app.listen(process.env.PORT || 8080);
   })
   .catch((err) => console.log(err));
